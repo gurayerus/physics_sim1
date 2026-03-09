@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Centripetal Force & Friction Simulator</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d0d1a;
+  color: #e0e0f0;
+  font-family: 'Segoe UI', sans-serif;
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#canvas-container {
+  flex: 1;
+  position: relative;
+}
+
+canvas { display: block; width: 100% !important; height: 100% !important; }
+
+#panel {
+  width: 320px;
+  background: #111126;
+  border-left: 1px solid #2a2a4a;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.section {
+  padding: 14px 16px;
+  border-bottom: 1px solid #1e1e3a;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #6060a0;
+  margin-bottom: 12px;
+}
+
+h1 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #a0a0ff;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #1e1e3a;
+  letter-spacing: 0.5px;
+}
+
+h1 span {
+  display: block;
+  font-size: 10px;
+  color: #5050a0;
+  font-weight: 400;
+  letter-spacing: 1px;
+  margin-top: 2px;
+}
+
+.slider-group {
+  margin-bottom: 12px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.slider-name {
+  font-size: 12px;
+  color: #b0b0d0;
+}
+
+.slider-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: #8080ff;
+  min-width: 60px;
+  text-align: right;
+}
+
+input[type="range"] {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  background: #2a2a4a;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #6060ff;
+  cursor: pointer;
+  box-shadow: 0 0 6px #4040ff80;
+}
+input[type="range"]::-webkit-slider-thumb:hover { background: #8080ff; }
+
+.status-box {
+  padding: 10px 14px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  transition: all 0.3s;
+}
+.status-stable  { background: #0a2a1a; color: #40ff80; border: 1px solid #20aa50; }
+.status-sliding { background: #2a1a0a; color: #ffaa30; border: 1px solid #aa6010; }
+.status-ejected { background: #2a0a0a; color: #ff4040; border: 1px solid #aa2020; }
+.status-corotating { background: #0a1a2a; color: #40aaff; border: 1px solid #2060aa; }
+
+.gauge-wrap {
+  margin-bottom: 10px;
+}
+.gauge-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #6060a0;
+  margin-bottom: 3px;
+}
+.gauge-track {
+  height: 8px;
+  background: #1a1a3a;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #2a2a4a;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.1s, background 0.3s;
+  min-width: 2px;
+}
+
+.force-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 11px;
+}
+.force-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.force-name { color: #9090c0; flex: 1; }
+.force-val  { color: #d0d0ff; font-weight: 600; min-width: 60px; text-align: right; }
+
+.btn-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+button {
+  flex: 1;
+  padding: 8px 4px;
+  border: 1px solid #3a3a6a;
+  background: #1a1a3a;
+  color: #a0a0ff;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.2s;
+}
+button:hover { background: #2a2a5a; border-color: #6060aa; color: #d0d0ff; }
+button.active { background: #2a2a6a; border-color: #8080ff; color: #ffffff; }
+
+.info-text {
+  font-size: 10px;
+  color: #4040a0;
+  line-height: 1.5;
+}
+
+.formula-box {
+  background: #0a0a1e;
+  border: 1px solid #2a2a4a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  font-size: 10px;
+  color: #7070c0;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+.formula-box .highlight { color: #a0a0ff; font-weight: 600; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  color: #9090c0;
+  cursor: pointer;
+}
+input[type="checkbox"] { cursor: pointer; accent-color: #6060ff; }
+
+#overlay-info {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #111126cc;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: #8080b0;
+  pointer-events: none;
+}
+#overlay-info .val { color: #a0a0ff; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="canvas-container">
+  <canvas id="c"></canvas>
+  <div id="overlay-info">
+    <div>r = <span class="val" id="ov-r">—</span> m &nbsp;|&nbsp;
+         φ = <span class="val" id="ov-phi">—</span>° &nbsp;|&nbsp;
+         |v_rel| = <span class="val" id="ov-vrel">—</span> m/s</div>
+  </div>
+</div>
+
+<div id="panel">
+  <h1>Centripetal & Friction<span>3D Physics Simulator</span></h1>
+
+  <!-- CONTROLS -->
+  <div class="section">
+    <div class="section-title">Controls</div>
+    <div class="btn-row">
+      <button id="btn-play" class="active">⏸ Pause</button>
+      <button id="btn-reset">↺ Reset</button>
+    </div>
+    <label class="checkbox-row">
+      <input type="checkbox" id="chk-trail" checked> Show trail
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="chk-forces" checked> Show forces
+    </label>
+    <label class="checkbox-row">
+      <input type="checkbox" id="chk-grid" checked> Show table grid
+    </label>
+  </div>
+
+  <!-- PARAMETERS -->
+  <div class="section">
+    <div class="section-title">Parameters</div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">ω — Rotation speed</span>
+        <span class="slider-value" id="val-omega">2.0 rad/s</span>
+      </div>
+      <input type="range" id="sl-omega" min="0" max="8" step="0.05" value="2.0">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">μ — Friction coeff.</span>
+        <span class="slider-value" id="val-mu">0.40</span>
+      </div>
+      <input type="range" id="sl-mu" min="0" max="1.0" step="0.01" value="0.40">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">m — Mass</span>
+        <span class="slider-value" id="val-mass">1.0 kg</span>
+      </div>
+      <input type="range" id="sl-mass" min="0.1" max="5.0" step="0.1" value="1.0">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">α — Inclination</span>
+        <span class="slider-value" id="val-alpha">0°</span>
+      </div>
+      <input type="range" id="sl-alpha" min="0" max="45" step="0.5" value="0">
+    </div>
+
+    <div class="slider-group">
+      <div class="slider-label">
+        <span class="slider-name">r₀ — Initial radius</span>
+        <span class="slider-value" id="val-r0">1.0 m</span>
+      </div>
+      <input type="range" id="sl-r0" min="0.1" max="1.85" step="0.05" value="1.0">
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="section">
+    <div class="section-title">Status</div>
+    <div class="status-box status-corotating" id="status-box">CO-ROTATING</div>
+
+    <div class="gauge-wrap">
+      <div class="gauge-label">
+        <span>Friction load: <span id="gauge-pct">0%</span></span>
+        <span id="gauge-lbl">required / available</span>
+      </div>
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gauge-fill" style="width:0%;background:#40ff80;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORCES -->
+  <div class="section">
+    <div class="section-title">Forces on Object</div>
+
+    <div class="force-row">
+      <div class="force-dot" style="background:#4488ff"></div>
+      <div class="force-name">Centripetal (req.)</div>
+      <div class="force-val" id="f-centripetal">0.00 N</div>
+    </div>
+    <div class="force-row">
+      <div class="force-dot" style="background:#ff8844"></div>
+      <div class="force-name">Gravity ∥ table</div>
+      <div class="force-val" id="f-gravity-table">0.00 N</div>
+    </div>
+    <div class="force-row">
+      <div class="force-dot" style="background:#44ff88"></div>
+      <div class="force-name">Friction (actual)</div>
+      <div class="force-val" id="f-friction">0.00 N</div>
+    </div>
+    <div class="force-row">
+      <div class="force-dot" style="background:#ffffff"></div>
+      <div class="force-name">Normal force</div>
+      <div class="force-val" id="f-normal">9.81 N</div>
+    </div>
+    <div class="force-row">
+      <div class="force-dot" style="background:#ffdd44"></div>
+      <div class="force-name">Max static friction</div>
+      <div class="force-val" id="f-maxfriction">3.92 N</div>
+    </div>
+  </div>
+
+  <!-- FORMULA -->
+  <div class="section">
+    <div class="section-title">Physics</div>
+    <div class="formula-box">
+      <div>Stable if: <span class="highlight">ω²r ≤ μg·cos α − g·sin α</span></div>
+      <div>Centripetal: <span class="highlight">F = mω²r</span></div>
+      <div>Normal: <span class="highlight">N = mg·cos α</span></div>
+      <div>Max friction: <span class="highlight">f = μN</span></div>
+      <div style="margin-top:4px;color:#3a3a6a;">Note: stability is mass-independent!</div>
+    </div>
+    <div class="formula-box" style="margin-top:6px">
+      <div>Critical ω: <span class="highlight" id="omega-crit">—</span></div>
+      <div>Critical r: <span class="highlight" id="r-crit">—</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.163/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ─────────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────────
+const G = 9.81;          // m/s²
+const R_TABLE = 2.0;     // table radius in metres
+const TABLE_H = 0.08;    // table thickness
+const DT_PHYS = 1 / 600; // physics sub-step (s)
+const TRAIL_MAX = 800;   // trail points
+
+// ─────────────────────────────────────────────
+//  PARAMETERS (live, updated from sliders)
+// ─────────────────────────────────────────────
+let params = {
+  omega : 2.0,   // rad/s
+  mu    : 0.40,  // friction coefficient (static ≈ kinetic for simplicity)
+  mass  : 1.0,   // kg
+  alpha : 0,     // inclination rad
+  r0    : 1.0    // initial object radius
+};
+
+// ─────────────────────────────────────────────
+//  THREE.JS SETUP
+// ─────────────────────────────────────────────
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d0d1a);
+scene.fog = new THREE.FogExp2(0x0d0d1a, 0.04);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 100);
+camera.position.set(3.5, 3.5, 4.5);
+camera.lookAt(0, 0, 0);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 0, 0);
+
+// ─────────────────────────────────────────────
+//  LIGHTING
+// ─────────────────────────────────────────────
+scene.add(new THREE.AmbientLight(0x303060, 3));
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 3);
+sunLight.position.set(4, 8, 4);
+sunLight.castShadow = true;
+sunLight.shadow.mapSize.set(1024, 1024);
+sunLight.shadow.camera.near = 0.1;
+sunLight.shadow.camera.far = 30;
+sunLight.shadow.camera.left = -5; sunLight.shadow.camera.right = 5;
+sunLight.shadow.camera.top = 5; sunLight.shadow.camera.bottom = -5;
+scene.add(sunLight);
+
+const fillLight = new THREE.PointLight(0x4040ff, 1.5, 10);
+fillLight.position.set(-3, 2, -2);
+scene.add(fillLight);
+
+// ─────────────────────────────────────────────
+//  TABLE GROUP (all table geometry lives here, pivot on Y for rotation)
+// ─────────────────────────────────────────────
+const tableGroup = new THREE.Group();  // rotates with ω
+const tiltGroup  = new THREE.Group();  // handles inclination
+scene.add(tiltGroup);
+tiltGroup.add(tableGroup);
+
+// Table disc (body)
+const tableGeo = new THREE.CylinderGeometry(R_TABLE, R_TABLE, TABLE_H, 64, 1, false);
+const tableMat = new THREE.MeshStandardMaterial({
+  color: 0x1a1a3a, metalness: 0.2, roughness: 0.8,
+  side: THREE.DoubleSide
+});
+const tableMesh = new THREE.Mesh(tableGeo, tableMat);
+tableMesh.receiveShadow = true;
+tableGroup.add(tableMesh);
+
+// Table top face (surface)
+const topGeo = new THREE.CircleGeometry(R_TABLE, 64);
+const topMat = new THREE.MeshStandardMaterial({ color: 0x1e1e40, roughness: 0.9, metalness: 0.05 });
+const topMesh = new THREE.Mesh(topGeo, topMat);
+topMesh.rotation.x = -Math.PI / 2;
+topMesh.position.y = TABLE_H / 2 + 0.001;
+topMesh.receiveShadow = true;
+tableGroup.add(topMesh);
+
+// Grid rings
+function makeRingLine(r, segments = 64) {
+  const pts = [];
+  for (let i = 0; i <= segments; i++) {
+    const a = (i / segments) * Math.PI * 2;
+    pts.push(new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a)));
+  }
+  return new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x3030a0, transparent: true, opacity: 0.5 })
+  );
+}
+
+const gridGroup = new THREE.Group();
+gridGroup.position.y = TABLE_H / 2 + 0.002;
+for (let ri = 1; ri <= 4; ri++) gridGroup.add(makeRingLine(ri * R_TABLE / 4));
+
+// Radial spokes (rotate with table)
+for (let i = 0; i < 12; i++) {
+  const a = (i / 12) * Math.PI * 2;
+  const pts = [
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(R_TABLE * Math.cos(a), 0, R_TABLE * Math.sin(a))
+  ];
+  gridGroup.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x3030a0, transparent: true, opacity: 0.3 })
+  ));
+}
+tableGroup.add(gridGroup);
+
+// Edge ring highlight
+const edgeGeo = makeRingLine(R_TABLE - 0.01);
+edgeGeo.position.y = TABLE_H / 2 + 0.003;
+edgeGeo.material = new THREE.LineBasicMaterial({ color: 0x6060cc, transparent: true, opacity: 0.9 });
+tableGroup.add(edgeGeo);
+
+// Rotation marker (a bright radial spoke that shows table angle)
+const markerPts = [
+  new THREE.Vector3(0.1, 0, 0),
+  new THREE.Vector3(R_TABLE - 0.05, 0, 0)
+];
+const markerLine = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints(markerPts),
+  new THREE.LineBasicMaterial({ color: 0xff6060, linewidth: 2 })
+);
+markerLine.position.y = TABLE_H / 2 + 0.005;
+tableGroup.add(markerLine);
+
+// Table stand
+const standGeo = new THREE.CylinderGeometry(0.06, 0.12, 1.5, 16);
+const standMesh = new THREE.Mesh(standGeo, new THREE.MeshStandardMaterial({ color: 0x181830, roughness: 0.6 }));
+standMesh.position.y = -0.75 - TABLE_H / 2;
+tiltGroup.add(standMesh);
+
+// Ground plane
+const groundGeo = new THREE.PlaneGeometry(20, 20);
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x090912, roughness: 1 });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -1.6;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// World-space axes (small, at origin for reference)
+const axesHelper = new THREE.AxesHelper(0.5);
+axesHelper.position.set(-R_TABLE - 0.3, 0, 0);
+scene.add(axesHelper);
+
+// ─────────────────────────────────────────────
+//  OBJECT (the mass on the table)
+// ─────────────────────────────────────────────
+const objGeo = new THREE.SphereGeometry(0.12, 24, 16);
+const objMat = new THREE.MeshStandardMaterial({
+  color: 0x00ff88, emissive: 0x004422, roughness: 0.3, metalness: 0.4
+});
+const objMesh = new THREE.Mesh(objGeo, objMat);
+objMesh.castShadow = true;
+scene.add(objMesh);
+
+// Glow sprite under object
+const glowTex = (() => {
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  const g2 = ctx.createRadialGradient(32,32,2,32,32,32);
+  g2.addColorStop(0,'rgba(0,255,136,0.5)');
+  g2.addColorStop(1,'rgba(0,255,136,0)');
+  ctx.fillStyle = g2; ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(cv);
+})();
+const glowSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, depthTest: false, transparent: true }));
+glowSprite.scale.set(0.6, 0.6, 1);
+scene.add(glowSprite);
+
+// ─────────────────────────────────────────────
+//  FORCE ARROWS
+// ─────────────────────────────────────────────
+function makeArrow(color, headLength = 0.15, headWidth = 0.07) {
+  const dir = new THREE.Vector3(1, 0, 0);
+  const origin = new THREE.Vector3(0, 0, 0);
+  const arrow = new THREE.ArrowHelper(dir, origin, 0.001, color, headLength, headWidth);
+  arrow.line.material.linewidth = 2;
+  scene.add(arrow);
+  return arrow;
+}
+
+const arrowCentripetal = makeArrow(0x4488ff); // blue  – centripetal needed
+const arrowGravTable   = makeArrow(0xff8844); // orange – gravity along table
+const arrowFriction    = makeArrow(0x44ff88); // green  – friction
+const arrowNormal      = makeArrow(0xffffff); // white  – normal force
+
+function setArrow(arrow, origin, vec3, scale = 1) {
+  const len = vec3.length() * scale;
+  if (len < 0.001) { arrow.setLength(0.001); return; }
+  arrow.position.copy(origin);
+  arrow.setDirection(vec3.clone().normalize());
+  arrow.setLength(Math.min(len, 3), Math.min(0.15, len * 0.3), Math.min(0.07, len * 0.15));
+}
+
+// ─────────────────────────────────────────────
+//  TRAIL
+// ─────────────────────────────────────────────
+const trailPositions = new Float32Array(TRAIL_MAX * 3);
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+const trailMat = new THREE.LineBasicMaterial({ color: 0x44aa88, transparent: true, opacity: 0.5, vertexColors: false });
+const trailLine = new THREE.Line(trailGeo, trailMat);
+scene.add(trailLine);
+
+let trailCount = 0;
+let trailHead = 0;
+let trailFull = false;
+
+function addTrailPoint(pos) {
+  const base = trailHead * 3;
+  trailPositions[base] = pos.x;
+  trailPositions[base + 1] = pos.y;
+  trailPositions[base + 2] = pos.z;
+  trailHead = (trailHead + 1) % TRAIL_MAX;
+  if (!trailFull && trailHead === 0) trailFull = true;
+  trailCount = trailFull ? TRAIL_MAX : trailHead;
+  trailGeo.setDrawRange(0, trailCount);
+  trailGeo.attributes.position.needsUpdate = true;
+}
+
+function clearTrail() {
+  trailCount = 0; trailHead = 0; trailFull = false;
+  trailGeo.setDrawRange(0, 0);
+  trailGeo.attributes.position.needsUpdate = true;
+}
+
+// ─────────────────────────────────────────────
+//  PHYSICS
+// ─────────────────────────────────────────────
+
+// Table local 2D frame (world-fixed table-plane):
+//   e1 = (1, 0, 0)
+//   e2 = n̂ × e1  where n̂ = (0, cos α, sin α)
+// n̂ = (0, cos α, sin α)  (table normal, tilted around X)
+// e1 = (1, 0, 0)
+// e2 = (0, sin α, -cos α)  [down-slope for α>0 is -e2 direction]
+// gravity component along table: (g⃗ · e2) = -G*sin(α)  in e2 direction
+
+function tableAxes(alpha) {
+  // tiltGroup.rotation.x = -alpha  →  local Y → world (0, cos α, -sin α)
+  // n  = table normal in world
+  // e1 = "right" on table (X axis, unaffected by X-tilt)
+  // e2 = n × e1  (downhill for α > 0 is +e2 direction)
+  const e1 = new THREE.Vector3(1, 0, 0);
+  const e2 = new THREE.Vector3(0, -Math.sin(alpha), -Math.cos(alpha));
+  const n  = new THREE.Vector3(0,  Math.cos(alpha), -Math.sin(alpha));
+  return { e1, e2, n };
+}
+
+function tableToWorld(u, v, alpha) {
+  const { e1, e2 } = tableAxes(alpha);
+  return new THREE.Vector3().addScaledVector(e1, u).addScaledVector(e2, v);
+}
+
+function worldToTable(wx, wy, wz, alpha) {
+  const { e1, e2 } = tableAxes(alpha);
+  const w = new THREE.Vector3(wx, wy, wz);
+  return { u: w.dot(e1), v: w.dot(e2) };
+}
+
+// Physics state
+let state = {
+  u: 0, v: 0,           // position in table 2D frame (world-fixed)
+  udot: 0, vdot: 0,     // velocity
+  mode: 'static',        // 'static' | 'sliding' | 'ejected'
+  tableAngle: 0,
+  accum: 0,
+};
+
+function resetPhysics() {
+  const { omega, alpha, r0 } = params;
+  // Start at (r0, 0) in table frame, co-rotating
+  state.u = r0;
+  state.v = 0;
+  state.udot = -omega * state.v;  // = 0 initially
+  state.vdot =  omega * state.u;  // = omega * r0
+  state.mode = 'static';
+  state.tableAngle = 0;
+  state.accum = 0;
+  clearTrail();
+}
+
+function physicsStep(dt, omega, mu, mass, alpha) {
+  if (state.mode === 'ejected') return;
+
+  const N_over_m = G * Math.cos(alpha);   // normal force per unit mass
+  const g_e2 = G * Math.sin(alpha);        // gravity pulls in +e2 direction (downhill)
+
+  const u = state.u, v = state.v;
+  const r2 = u*u + v*v;
+  const r  = Math.sqrt(r2);
+
+  if (r > R_TABLE + 0.1) {
+    state.mode = 'ejected';
+    return;
+  }
+
+  // Relative velocity of object w.r.t. table surface
+  const vrel_u = state.udot + omega * v;   // (u_dot - v_table_u), v_table = ω(-v, u)
+  const vrel_v = state.vdot - omega * u;
+  const vrel_sq = vrel_u*vrel_u + vrel_v*vrel_v;
+  const vrel_mag = Math.sqrt(vrel_sq);
+
+  // Required friction acceleration to maintain co-rotation at current (u,v)
+  // a_needed = (-ω²u, -ω²v)  [centripetal in world frame]
+  // friction = a_needed - gravity_table  (gravity pushes in +e2, so subtract)
+  const freq_u = -omega*omega*u;
+  const freq_v = -omega*omega*v - g_e2;   // = -ω²v - g·sin α
+  const freq_mag = Math.sqrt(freq_u*freq_u + freq_v*freq_v);
+
+  const max_friction_a = mu * N_over_m;  // μg·cos α
+
+  if (state.mode === 'static') {
+    if (freq_mag <= max_friction_a) {
+      // Static friction sufficient → enforce co-rotation
+      // Instead of integrating, update velocity to match co-rotation exactly
+      state.udot = -omega * v;
+      state.vdot =  omega * u;
+      // Advance position for co-rotation: rotate (u,v) by omega*dt
+      const c = Math.cos(omega * dt);
+      const s = Math.sin(omega * dt);
+      state.u = u*c - v*s;
+      state.v = u*s + v*c;
+    } else {
+      // Static friction insufficient → switch to sliding
+      state.mode = 'sliding';
+      // Give tiny perturbation so kinetic friction has a defined direction
+      state.udot = -omega * v + freq_u * 0.001;
+      state.vdot =  omega * u + freq_v * 0.001;
+    }
+  }
+
+  if (state.mode === 'sliding') {
+    const vu = state.udot + omega * state.v;
+    const vv = state.vdot - omega * state.u;
+    const vm = Math.sqrt(vu*vu + vv*vv);
+
+    let fu = 0, fv = 0;
+    if (vm > 1e-6) {
+      // Kinetic friction: oppose relative motion
+      fu = -mu * N_over_m * vu / vm;
+      fv = -mu * N_over_m * vv / vm;
+    } else {
+      // Sliding but nearly zero relative speed
+      // Check if static can hold now
+      const rf_u = -omega*omega*state.u;
+      const rf_v = -omega*omega*state.v - g_e2;
+      const rfm  = Math.sqrt(rf_u*rf_u + rf_v*rf_v);
+      if (rfm <= max_friction_a) {
+        state.mode = 'static';
+        state.udot = -omega * state.v;
+        state.vdot =  omega * state.u;
+        return;
+      }
+      fu = -mu * N_over_m * (rf_u / rfm);
+      fv = -mu * N_over_m * (rf_v / rfm);
+    }
+
+    // Acceleration = gravity + friction (in table 2D, per unit mass)
+    const au = 0  + fu;          // no e1 gravity component
+    const av = g_e2 + fv;
+
+    state.udot += au * dt;
+    state.vdot += av * dt;
+    state.u += state.udot * dt;
+    state.v += state.vdot * dt;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SIMULATION STATE VARIABLES
+// ─────────────────────────────────────────────
+let running = true;
+let trailTimer = 0;
+
+resetPhysics();
+
+// ─────────────────────────────────────────────
+//  UI
+// ─────────────────────────────────────────────
+const sliders = {
+  omega : document.getElementById('sl-omega'),
+  mu    : document.getElementById('sl-mu'),
+  mass  : document.getElementById('sl-mass'),
+  alpha : document.getElementById('sl-alpha'),
+  r0    : document.getElementById('sl-r0'),
+};
+const vals = {
+  omega : document.getElementById('val-omega'),
+  mu    : document.getElementById('val-mu'),
+  mass  : document.getElementById('val-mass'),
+  alpha : document.getElementById('val-alpha'),
+  r0    : document.getElementById('val-r0'),
+};
+
+function updateParams() {
+  params.omega = parseFloat(sliders.omega.value);
+  params.mu    = parseFloat(sliders.mu.value);
+  params.mass  = parseFloat(sliders.mass.value);
+  params.alpha = parseFloat(sliders.alpha.value) * Math.PI / 180;
+  params.r0    = parseFloat(sliders.r0.value);
+
+  vals.omega.textContent = params.omega.toFixed(2) + ' rad/s';
+  vals.mu.textContent    = params.mu.toFixed(2);
+  vals.mass.textContent  = params.mass.toFixed(1) + ' kg';
+  vals.alpha.textContent = (params.alpha * 180 / Math.PI).toFixed(1) + '°';
+  vals.r0.textContent    = params.r0.toFixed(2) + ' m';
+
+  // Critical values
+  const mu = params.mu, alpha = params.alpha;
+  const coeff = mu * Math.cos(alpha) - Math.sin(alpha); // must be > 0
+  if (coeff > 0) {
+    const omegaCrit = Math.sqrt(G * coeff / params.r0);
+    const rCrit     = G * coeff / (params.omega * params.omega || 0.0001);
+    document.getElementById('omega-crit').textContent = omegaCrit.toFixed(2) + ' rad/s at r₀';
+    document.getElementById('r-crit').textContent     = rCrit.toFixed(2) + ' m at ω';
+  } else {
+    document.getElementById('omega-crit').textContent = 'N/A (unstable axis)';
+    document.getElementById('r-crit').textContent     = 'N/A';
+  }
+}
+
+Object.values(sliders).forEach(s => s.addEventListener('input', () => {
+  updateParams();
+  resetPhysics();
+}));
+
+document.getElementById('btn-play').addEventListener('click', function () {
+  running = !running;
+  this.textContent = running ? '⏸ Pause' : '▶ Play';
+  this.classList.toggle('active', running);
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  resetPhysics();
+  if (!running) running = true;
+  document.getElementById('btn-play').textContent = '⏸ Pause';
+  document.getElementById('btn-play').classList.add('active');
+});
+
+const chkTrail  = document.getElementById('chk-trail');
+const chkForces = document.getElementById('chk-forces');
+const chkGrid   = document.getElementById('chk-grid');
+
+chkTrail.addEventListener('change', () => { trailLine.visible = chkTrail.checked; });
+chkForces.addEventListener('change', () => {
+  [arrowCentripetal, arrowGravTable, arrowFriction, arrowNormal].forEach(a => a.visible = chkForces.checked);
+});
+chkGrid.addEventListener('change', () => { gridGroup.visible = chkGrid.checked; });
+
+// ─────────────────────────────────────────────
+//  RESIZE
+// ─────────────────────────────────────────────
+function resize() {
+  const w = container.clientWidth, h = container.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─────────────────────────────────────────────
+//  UPDATE UI READOUTS
+// ─────────────────────────────────────────────
+function updateReadouts(u, v, udot, vdot, alpha, omega, mu, mass) {
+  const r = Math.sqrt(u*u + v*v);
+  const phi = Math.atan2(v, u) * 180 / Math.PI;
+  const vrel_u = udot + omega * v;
+  const vrel_v = vdot - omega * u;
+  const vrel_mag = Math.sqrt(vrel_u*vrel_u + vrel_v*vrel_v);
+
+  document.getElementById('ov-r').textContent   = r.toFixed(2);
+  document.getElementById('ov-phi').textContent = phi.toFixed(1);
+  document.getElementById('ov-vrel').textContent= vrel_mag.toFixed(2);
+
+  const N = mass * G * Math.cos(alpha);
+  const maxFric = mu * N;
+  const g_e2 = G * Math.sin(alpha);   // gravity in +e2 direction (downhill)
+
+  // Required friction for co-rotation
+  const freq_u = -omega*omega*u;
+  const freq_v = -omega*omega*v - g_e2;  // = -ω²v - g·sin α
+  const freq_mag = Math.sqrt(freq_u*freq_u + freq_v*freq_v);
+  const F_centripetal = mass * omega * omega * r;
+  const F_grav_table  = mass * G * Math.sin(alpha);
+
+  // Actual friction force
+  let F_friction;
+  if (state.mode === 'static') {
+    F_friction = mass * freq_mag;
+  } else if (state.mode === 'sliding') {
+    F_friction = mu * N;
+  } else {
+    F_friction = 0;
+  }
+
+  document.getElementById('f-centripetal').textContent  = F_centripetal.toFixed(2) + ' N';
+  document.getElementById('f-gravity-table').textContent= F_grav_table.toFixed(2) + ' N';
+  document.getElementById('f-friction').textContent     = F_friction.toFixed(2) + ' N';
+  document.getElementById('f-normal').textContent       = N.toFixed(2) + ' N';
+  document.getElementById('f-maxfriction').textContent  = maxFric.toFixed(2) + ' N';
+
+  // Gauge
+  const ratio = maxFric > 0.001 ? Math.min(mass * freq_mag / maxFric, 2.0) : 0;
+  const pct   = Math.min(ratio * 100, 200);
+  const gaugePct = Math.min(pct, 100);
+  const gaugeEl  = document.getElementById('gauge-fill');
+  gaugeEl.style.width = gaugePct + '%';
+  gaugeEl.style.background = ratio < 0.7 ? '#40ff80' : ratio < 1.0 ? '#ffdd30' : '#ff4444';
+  document.getElementById('gauge-pct').textContent = (ratio * 100).toFixed(0) + '%';
+
+  // Status box
+  const box = document.getElementById('status-box');
+  if (state.mode === 'ejected') {
+    box.className = 'status-box status-ejected';
+    box.textContent = 'EJECTED';
+  } else if (state.mode === 'sliding') {
+    box.className = 'status-box status-sliding';
+    box.textContent = 'SLIDING';
+  } else {
+    box.className = 'status-box status-corotating';
+    box.textContent = 'STABLE';
+  }
+
+  // Object color
+  if (state.mode === 'ejected') {
+    objMat.color.set(0xff2020);
+    objMat.emissive.set(0x440000);
+    glowSprite.material.color.set(0xff2020);
+  } else if (state.mode === 'sliding') {
+    objMat.color.set(0xffaa20);
+    objMat.emissive.set(0x442200);
+    glowSprite.material.color.set(0xffaa20);
+    arrowFriction.setColor(0xff6622);
+  } else {
+    objMat.color.set(0x00ff88);
+    objMat.emissive.set(0x004422);
+    glowSprite.material.color.set(0x00ff88);
+    arrowFriction.setColor(0x44ff88);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  ANIMATION LOOP
+// ─────────────────────────────────────────────
+let lastTime = null;
+const VIS_SCALE = 0.07;  // N → metres for arrow length
+
+function animate(ts) {
+  requestAnimationFrame(animate);
+  const now = ts / 1000;
+  if (lastTime === null) { lastTime = now; }
+  let dt = Math.min(now - lastTime, 0.05);
+  lastTime = now;
+
+  const { omega, mu, mass, alpha } = params;
+
+  // ── physics sub-stepping ──
+  if (running && state.mode !== 'ejected') {
+    state.accum += dt;
+    while (state.accum >= DT_PHYS) {
+      physicsStep(DT_PHYS, omega, mu, mass, alpha);
+      state.accum -= DT_PHYS;
+      state.tableAngle += omega * DT_PHYS;
+    }
+  }
+
+  // ── table visual rotation ──
+  tableGroup.rotation.y = state.tableAngle;
+
+  // ── tilt group ──
+  tiltGroup.rotation.x = -alpha;
+
+  // ── object world position ──
+  const { e1, e2, n } = tableAxes(alpha);
+  const worldLocal = new THREE.Vector3()
+    .addScaledVector(e1, state.u)
+    .addScaledVector(e2, state.v);
+  // Lift to top of table surface
+  const objWorldPos = worldLocal.clone().addScaledVector(n, TABLE_H / 2 + 0.12);
+
+  objMesh.position.copy(objWorldPos);
+  glowSprite.position.copy(worldLocal).addScaledVector(n, TABLE_H / 2 + 0.02);
+
+  // ── trail ──
+  if (running && chkTrail.checked) {
+    trailTimer += dt;
+    if (trailTimer > 0.02) {
+      addTrailPoint(objWorldPos);
+      trailTimer = 0;
+    }
+  }
+
+  // ── force arrows ──
+  if (chkForces.checked) {
+    const N_over_m  = G * Math.cos(alpha);
+    const g_e2      =  G * Math.sin(alpha);   // downhill in +e2
+    const r = Math.sqrt(state.u*state.u + state.v*state.v);
+
+    // 1. Centripetal force required (inward toward rotation axis)
+    const F_cp = mass * omega * omega * r;
+    const inwardWorld = new THREE.Vector3()
+      .addScaledVector(e1, -state.u)
+      .addScaledVector(e2, -state.v)
+      .normalize()
+      .multiplyScalar(F_cp);
+    setArrow(arrowCentripetal, objWorldPos, inwardWorld, VIS_SCALE);
+
+    // 2. Gravity component along table (down-slope = +e2 direction for α>0)
+    const F_grav_table = mass * G * Math.sin(alpha);
+    const gravTableWorld = e2.clone().multiplyScalar(F_grav_table);
+    setArrow(arrowGravTable, objWorldPos, gravTableWorld, VIS_SCALE);
+
+    // 3. Friction force (actual)
+    let frictionWorld = new THREE.Vector3();
+    if (state.mode === 'static') {
+      // friction = freq = (-ω²u, -ω²v - g_e2) in (e1,e2)
+      const freq_u = -omega*omega*state.u;
+      const freq_v = -omega*omega*state.v - g_e2;
+      frictionWorld.addScaledVector(e1, freq_u * mass).addScaledVector(e2, freq_v * mass);
+    } else if (state.mode === 'sliding') {
+      const vu = state.udot + omega * state.v;
+      const vv = state.vdot - omega * state.u;
+      const vm = Math.sqrt(vu*vu + vv*vv) || 1;
+      const fu = -mu * N_over_m * vu / vm * mass;
+      const fv = -mu * N_over_m * vv / vm * mass;
+      frictionWorld.addScaledVector(e1, fu).addScaledVector(e2, fv);
+    }
+    setArrow(arrowFriction, objWorldPos, frictionWorld, VIS_SCALE);
+
+    // 4. Normal force (perpendicular to table, scaled down for display)
+    const normalForce = n.clone().multiplyScalar(mass * G * Math.cos(alpha));
+    setArrow(arrowNormal, objWorldPos, normalForce, VIS_SCALE);
+  } else {
+    [arrowCentripetal, arrowGravTable, arrowFriction, arrowNormal].forEach(a => a.setLength(0.001));
+  }
+
+  // ── readouts ──
+  updateReadouts(state.u, state.v, state.udot, state.vdot, alpha, omega, mu, mass);
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+updateParams();
+requestAnimationFrame(animate);
+</script>
+</body>
+</html>
